@@ -6,6 +6,7 @@ __pycache__/
 # Dev files
 **/*dev-*
 .idea/*
+**/*.log
 
 # Distribution / packaging
 .Python
