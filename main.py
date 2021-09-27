@@ -116,7 +116,7 @@ def main():
                 if open_pull['state'] == 'open':
                     updated_time = datetime.datetime.strptime(open_pull['created_at'], "%Y-%m-%dT%H:%M:%SZ")
                     # Change here to check 3 days "current_time - datetime.timedelta(days=3) > updated_time"
-                    if current_time - datetime.timedelta(days=3) < updated_time:
+                    if current_time - datetime.timedelta(days=3) > updated_time:
                         print(f"...{open_pull['title']} is checking")
                         open_pull_object = {}
                         open_pull_object["repo"] = f"{owner}/{repo}"
