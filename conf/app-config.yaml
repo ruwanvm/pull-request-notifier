@@ -8,13 +8,15 @@
 #####################################################################################################################
 author : Ruwan Mettananda
 github-bearer-token: github_bearer_token
-default-channel_type: Teams
-default-channel: default_channel
-default-avatar: https://image.flaticon.com/icons/png/512/5147/5147107.png
+default-channel_type: Raw
+default-channel: teams_channel
+default-avatar: https://cdn-icons-png.flaticon.com/512/1/1474.png
 repositories:
   - name: ansible-terraform
     owner: ruwanvm
-    channel_type: slack
-    channel: slack-channel
+  - name: loki-grafana
+    owner: ruwanvm
+    channel_type: Teams
+    avatar: https://cdn-icons-png.flaticon.com/512/2782/2782058.png
 notifications:
   pull-open-days: 3

@@ -54,7 +54,7 @@ def send_message(message_dict):
 
 
 def main():
-    config_file = 'dev-app-config.yaml'
+    config_file = 'app-config.yaml'
 
     cwd = os.getcwd()
     config_dir = join(cwd, 'conf')
@@ -67,6 +67,7 @@ def main():
     logging.info('Started')
 
     status = 200
+    notify_timedelta = 0
 
     # Read app configs
     if status == 200:
@@ -75,32 +76,77 @@ def main():
                 app_configs = yaml.load(config_file, Loader=yaml.FullLoader)
             status = 200
             logging.info("Configurations are loaded")
+            notify_timedelta = int(app_configs['notifications']['pull-open-days'])
         except Exception as e:
             status = 501
             logging.error(f"Error loading configurations\n{str(e)}")
 
     if status == 200:
-        open_pulls = []
-        avatar = app_configs['default-avatar']
-        channel = app_configs['default-channel']
-        channel_type = app_configs['default-channel_type']
+        open_pulls = {}
+        default_avatar = app_configs['default-avatar']
+        default_channel = app_configs['default-channel']
+        default_channel_type = app_configs['default-channel_type']
+        github_token = os.environ[app_configs['github-bearer-token']]
         current_time = datetime.datetime.now()
+
         for repository in app_configs['repositories']:
-            if channel in repository:
+            if "channel" in repository:
                 channel = repository['channel']
-            if avatar in repository:
+            else:
+                channel = default_channel
+            if "avatar" in repository:
                 avatar = repository['avatar']
-            if channel_type in repository:
+            else:
+                avatar = default_avatar
+            if "channel_type" in repository:
                 channel_type = repository['channel_type']
+            else:
+                channel_type = default_channel_type
 
-            open_pulls_object = {
-                'url': f"https://api.github.com/repos/{repository['owner']}/{repository['name']}/pulls",
-                'channel': channel, 'type': channel_type, 'avatar': avatar}
+            print(f"{repository['name']} repository is checking")
 
-            open_pulls.append(open_pulls_object)
+            open_pulls[repository['name']] = []
+            url = f"https://api.github.com/repos/{repository['owner']}/{repository['name']}/pulls"
 
-        print(json.dumps(open_pulls, indent=4))
+            payload = {}
+            headers = {
+                'Authorization': f'Bearer {github_token}'
+            }
+            response = requests.request("GET", url, headers=headers, data=payload)
 
+            for open_pull in response.json():
+                if open_pull['state'] == 'open':
+                    updated_time = datetime.datetime.strptime(open_pull['created_at'], "%Y-%m-%dT%H:%M:%SZ")
+                    if current_time - datetime.timedelta(days=notify_timedelta) > updated_time:
+                        pull_open_days = current_time - updated_time
+                        print(f"...Pull request \"{open_pull['title']}\" is open for {pull_open_days.days} days")
+                        open_pull_object = {
+                            "repo": f"{repository['owner']}/{repository['name']}",
+                            "webhook_url": os.environ[channel], "avatar": avatar,
+                            "title": f"Pull request - {open_pull['title']} is {open_pull['state']}",
+                            "user": {
+                                "name": open_pull['user']['login']
+                            },
+                            "details": open_pull['body'],
+                            "created": open_pull['created_at'],
+                            "assignees": open_pull['assignees'],
+                            "url": open_pull['html_url'],
+                            "diff_url": open_pull['diff_url'],
+                            "head": {
+                                "repo": open_pull['head']['repo']['full_name'],
+                                "branch": open_pull['head']['ref'],
+                                "url": f"{open_pull['head']['repo']['html_url']}/tree/{open_pull['head']['ref']}"
+                            },
+                            "base": {
+                                "repo": open_pull['base']['repo']['full_name'],
+                                "branch": open_pull['base']['ref'],
+                                "url": f"{open_pull['base']['repo']['html_url']}/tree/{open_pull['base']['ref']}"
+                            }
+                        }
+
+                        results = send_message(open_pull_object)
+
+                        print(f"......{results}")
 
 
 if __name__ == "__main__":
