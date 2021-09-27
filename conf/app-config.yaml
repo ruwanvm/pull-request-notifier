@@ -1,0 +1,23 @@
+#####################################################################################################################
+# github-host           => GitHub url for checking pull requests
+# github-bearer-token   => Bearer token to access GitHub (Set as environment variable on this name)
+# type                  => Type of channel to send the notification [Teams, Slack, Raw (default)]
+# avatar                => Image to send on notification
+# channel               => channel url should be setup as an Environment Variable with this name
+# repositories -> name  => repository name to check pull requests
+#####################################################################################################################
+author : Ruwan Mettananda
+github-bearer-token: github_bearer_token
+default-channel_type: Raw
+default-channel: teams_channel
+default-avatar: https://cdn-icons-png.flaticon.com/512/1/1474.png
+repositories:
+  - name: ansible-terraform
+    owner: ruwanvm
+    channel_type: Slack
+    channel: slack_channel
+  - name: loki-grafana
+    owner: ruwanvm
+    avatar: https://cdn-icons-png.flaticon.com/512/2782/2782058.png
+notifications:
+  pull-open-days: 3
