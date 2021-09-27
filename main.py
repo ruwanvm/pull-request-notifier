@@ -10,40 +10,72 @@ import logging
 
 
 def send_message(message_dict):
+    if 'webhook.office.com' in message_dict['webhook_url']:
+        message_dict['channel_type'] = "teams"
+
+    if message_dict['channel_type'].lower() == "teams":
+        payload = {
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "themeColor": "0076D7",
+            "summary": message_dict['repo'],
+            "sections": [{
+                "activityTitle": message_dict['repo'],
+                "activitySubtitle": message_dict['title'],
+                "activityImage": message_dict['avatar'],
+                "facts": [{
+                    "name": "User",
+                    "value": message_dict['user']['name']
+                }, {
+                    "name": "Created",
+                    "value": message_dict['created']
+                }, {
+                    "name": "Head",
+                    "value": f"{message_dict['head']['repo']}:{message_dict['head']['branch']}"
+                }, {
+                    "name": "Base ",
+                    "value": f"{message_dict['base']['repo']}:{message_dict['base']['branch']}"
+                }, {
+                    "name": "Pull Request ",
+                    "value": message_dict['url']
+                }, {
+                    "name": "Diff URL ",
+                    "value": message_dict['diff_url']
+                }],
+                "markdown": True
+            }]
+        }
+    elif message_dict['channel_type'].lower() == "slack":
+        payload = {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": message_dict['title']
+                    }
+                },
+                {
+                    "type": "divider"
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"""*User*: {message_dict['user']['name']}\n*Created*: {message_dict['created']}\n*Head* : {message_dict['head']['repo']}:{message_dict['head']['branch']}\n*Base* : {message_dict['base']['repo']}:{message_dict['base']['branch']}\n*Pull Request* : {message_dict['url']}\n*Diff URL* : {message_dict['diff_url']}"""
+                    },
+                    "accessory": {
+                        "type": "image",
+                        "image_url": message_dict['avatar'],
+                        "alt_text": message_dict['repo']
+                    }
+                }
+            ]
+        }
+    else:
+        payload = {"text": f"""*User*: {message_dict['user']['name']}\n*Created*: {message_dict['created']}\n*Head* : {message_dict['head']['repo']}:{message_dict['head']['branch']}\n*Base* : {message_dict['base']['repo']}:{message_dict['base']['branch']}\n*Pull Request* : {message_dict['url']}\n*Diff URL* : {message_dict['diff_url']}"""}
     headers = {
         'Content-Type': 'application/json'
-    }
-
-    payload = {
-        "@type": "MessageCard",
-        "@context": "http://schema.org/extensions",
-        "themeColor": "0076D7",
-        "summary": message_dict['repo'],
-        "sections": [{
-            "activityTitle": message_dict['repo'],
-            "activitySubtitle": message_dict['title'],
-            "activityImage": message_dict['avatar'],
-            "facts": [{
-                "name": "User",
-                "value": message_dict['user']['name']
-            }, {
-                "name": "Created",
-                "value": message_dict['created']
-            }, {
-                "name": "Head",
-                "value": f"{message_dict['head']['repo']}:{message_dict['head']['branch']}"
-            }, {
-                "name": "Base ",
-                "value": f"{message_dict['base']['repo']}:{message_dict['base']['branch']}"
-            }, {
-                "name": "Pull Request ",
-                "value": message_dict['url']
-            }, {
-                "name": "Diff URL ",
-                "value": message_dict['diff_url']
-            }],
-            "markdown": True
-        }]
     }
 
     response = requests.post(message_dict['webhook_url'], data=json.dumps(payload), headers=headers)
@@ -121,9 +153,11 @@ def main():
                         pull_open_days = current_time - updated_time
                         print(f"...Pull request \"{open_pull['title']}\" is open for {pull_open_days.days} days")
                         open_pull_object = {
+                            "channel_type": channel_type,
                             "repo": f"{repository['owner']}/{repository['name']}",
-                            "webhook_url": os.environ[channel], "avatar": avatar,
-                            "title": f"Pull request - {open_pull['title']} is {open_pull['state']}",
+                            "webhook_url": os.environ[channel],
+                            "avatar": avatar,
+                            "title": f"Pull request - {open_pull['title']} is {open_pull['state']} for {pull_open_days.days} days",
                             "user": {
                                 "name": open_pull['user']['login']
                             },
@@ -146,7 +180,7 @@ def main():
 
                         results = send_message(open_pull_object)
 
-                        print(f"......{results}")
+                        print(results)
 
 
 if __name__ == "__main__":

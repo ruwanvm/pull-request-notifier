@@ -14,9 +14,10 @@ default-avatar: https://cdn-icons-png.flaticon.com/512/1/1474.png
 repositories:
   - name: ansible-terraform
     owner: ruwanvm
+    channel_type: Slack
+    channel: slack_channel
   - name: loki-grafana
     owner: ruwanvm
-    channel_type: Teams
     avatar: https://cdn-icons-png.flaticon.com/512/2782/2782058.png
 notifications:
   pull-open-days: 3
